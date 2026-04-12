@@ -1,4 +1,4 @@
-import { Statement } from './parser';
+import { Statement, Diagnostic } from './parser';
 
 export type GateType = 'AND' | 'OR' | 'NOT' | 'NAND' | 'NOR' | 'XOR' | 'XNOR';
 
@@ -11,22 +11,34 @@ export interface CircuitNode {
   value: boolean;
 }
 
+export interface CircuitResult {
+  circuit: Circuit | null;
+  diagnostics: Diagnostic[];
+}
+
 export class Circuit {
   nodes: Map<string, CircuitNode> = new Map();
   inputs: string[] = [];
   outputs: string[] = [];
   evaluationOrder: string[] = [];
+  diagnostics: Diagnostic[] = [];
 
   constructor(statements: Statement[]) {
     for (const stmt of statements) {
       if (stmt.type === 'INPUT') {
         for (const name of stmt.names) {
-          if (this.nodes.has(name)) throw new Error(`Duplicate identifier: ${name}`);
+          if (this.nodes.has(name)) {
+            this.diagnostics.push({ severity: 'Error', message: `Duplicate identifier: ${name}` });
+            continue;
+          }
           this.nodes.set(name, { id: name, type: 'INPUT', label: name, inputs: [], value: false });
           this.inputs.push(name);
         }
       } else if (stmt.type === 'GATE') {
-        if (this.nodes.has(stmt.id)) throw new Error(`Duplicate identifier: ${stmt.id}`);
+        if (this.nodes.has(stmt.id)) {
+          this.diagnostics.push({ severity: 'Error', message: `Duplicate identifier: ${stmt.id}` });
+          continue;
+        }
         this.nodes.set(stmt.id, {
           id: stmt.id,
           type: 'GATE',
@@ -37,6 +49,9 @@ export class Circuit {
         });
       } else if (stmt.type === 'OUTPUT') {
         const outId = `out_${stmt.name}`;
+        if (this.nodes.has(outId)) {
+          this.diagnostics.push({ severity: 'Warning', message: `Overwriting output: ${stmt.name}` });
+        }
         this.nodes.set(outId, {
           id: outId,
           type: 'OUTPUT',
@@ -48,7 +63,19 @@ export class Circuit {
       }
     }
 
-    this.validateAndSort();
+    try {
+      this.validateAndSort();
+      this.diagnostics.push({ severity: 'Info', message: `Circuit compiled: ${this.inputs.length} inputs, ${this.nodes.size - this.inputs.length} components.` });
+      
+      // Check for unconnected outputs
+      for (const [id, node] of this.nodes) {
+        if (node.type === 'OUTPUT' && node.inputs.length === 0) {
+          this.diagnostics.push({ severity: 'Warning', message: `Output '${node.label}' is not connected.` });
+        }
+      }
+    } catch (err: any) {
+      this.diagnostics.push({ severity: 'Error', message: err.message });
+    }
   }
 
   validateAndSort() {
@@ -76,7 +103,6 @@ export class Circuit {
       visit(outId);
     }
 
-    // Also visit any unconnected nodes just in case
     for (const nodeId of this.nodes.keys()) {
       if (!visited.has(nodeId)) {
         visit(nodeId);
@@ -123,18 +149,16 @@ export class Circuit {
     return result;
   }
 
-  generateTruthTable(): { headers: string[], rows: boolean[][] } {
+  generateTruthTable(rowLimit: number = 2000): { headers: string[], rows: boolean[][], totalRows: number } {
     const headers = [...this.inputs, ...this.outputs.map(id => this.nodes.get(id)!.label)];
     const rows: boolean[][] = [];
     const numInputs = this.inputs.length;
+    const totalRows = Math.pow(2, numInputs);
     
-    if (numInputs > 8) {
-      throw new Error("Too many inputs for truth table (max 8)");
-    }
-    
-    const numRows = Math.pow(2, numInputs);
+    // Performance safe-guard for UI rendering
+    const displayRows = Math.min(totalRows, rowLimit);
 
-    for (let i = 0; i < numRows; i++) {
+    for (let i = 0; i < displayRows; i++) {
       const inputVals: Record<string, boolean> = {};
       const row: boolean[] = [];
       for (let j = 0; j < numInputs; j++) {
@@ -145,11 +169,11 @@ export class Circuit {
 
       const outVals = this.evaluate(inputVals);
       for (const outId of this.outputs) {
-        row.push(outVals[this.nodes.get(outId)!.label]);
+        row.push(this.nodes.get(outId)!.value);
       }
       rows.push(row);
     }
 
-    return { headers, rows };
+    return { headers, rows, totalRows };
   }
 }

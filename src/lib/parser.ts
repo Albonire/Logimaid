@@ -13,6 +13,12 @@ export interface Token {
   line: number;
 }
 
+export interface Diagnostic {
+  severity: 'Error' | 'Warning' | 'Info';
+  message: string;
+  line?: number;
+}
+
 export function tokenize(input: string): Token[] {
   const tokens: Token[] = [];
   const lines = input.split('\n');
@@ -96,32 +102,35 @@ export interface OutputStatement {
   source: string;
 }
 
-export function parse(input: string): Statement[] {
+export interface ParseResult {
+  statements: Statement[];
+  diagnostics: Diagnostic[];
+}
+
+export function parse(input: string): ParseResult {
   const tokens = tokenize(input);
+  const diagnostics: Diagnostic[] = [];
+  const statements: Statement[] = [];
   let current = 0;
   let anonCounter = 0;
-  const statements: Statement[] = [];
 
   function peek(): Token {
     return tokens[current];
-  }
-
-  function lookAhead(n: number = 1): Token {
-    return tokens[current + n] || tokens[tokens.length - 1];
   }
 
   function consume(type: TokenType, msg?: string): Token {
     if (peek().type === type) {
       return tokens[current++];
     }
-    throw new Error(msg || `Expected ${type}, got ${peek().type} at line ${peek().line}`);
+    const token = peek();
+    const errorMsg = msg || `Expected ${type}, got ${token.type}`;
+    throw new Error(`${errorMsg} at line ${token.line}`);
   }
 
   function parseExpression(): string {
     const token = consume('IDENTIFIER', 'Expected identifier or gate type');
     
     if (peek().type === 'LPAREN') {
-      // It's a nested gate call: GATETYPE(arg1, arg2...)
       const gateType = token.value.toUpperCase();
       consume('LPAREN');
       
@@ -139,59 +148,62 @@ export function parse(input: string): Statement[] {
       statements.push({ type: 'GATE', id: anonId, gateType, inputs: args });
       return anonId;
     } else {
-      // It's a simple identifier (variable/input)
       return token.value;
     }
   }
 
-  while (peek().type !== 'EOF') {
-    const token = peek();
+  try {
+    while (peek().type !== 'EOF') {
+      const token = peek();
 
-    if (token.type === 'KEYWORD' && token.value === 'INPUT') {
-      consume('KEYWORD');
-      const names: string[] = [];
-      names.push(consume('IDENTIFIER', 'Expected input name').value);
-      while (peek().type === 'COMMA') {
-        consume('COMMA');
+      if (token.type === 'KEYWORD' && token.value === 'INPUT') {
+        consume('KEYWORD');
+        const names: string[] = [];
         names.push(consume('IDENTIFIER', 'Expected input name').value);
-      }
-      statements.push({ type: 'INPUT', names });
-    } else if (token.type === 'KEYWORD' && token.value === 'OUTPUT') {
-      consume('KEYWORD');
-      const labelToken = consume('IDENTIFIER', 'Expected output label');
-      
-      if (peek().type === 'EQUALS') {
-        consume('EQUALS');
-        const sourceId = parseExpression();
-        statements.push({ type: 'OUTPUT', name: labelToken.value, source: sourceId });
-      } else {
-        // Shorthand: OUTPUT Y (matches source with same name)
-        statements.push({ type: 'OUTPUT', name: labelToken.value, source: labelToken.value });
-      }
-    } else if (token.type === 'IDENTIFIER') {
-      const id = consume('IDENTIFIER').value;
-      consume('EQUALS', `Expected '=' after identifier '${id}'`);
-      
-      // Right hand side should be a gate expression
-      const gateTypeToken = consume('IDENTIFIER', 'Expected gate type (e.g., AND, OR)');
-      const gateType = gateTypeToken.value.toUpperCase();
-      
-      consume('LPAREN', 'Expected "(" after gate type');
-      const args: string[] = [];
-      if (peek().type !== 'RPAREN') {
-        args.push(parseExpression());
         while (peek().type === 'COMMA') {
           consume('COMMA');
-          args.push(parseExpression());
+          names.push(consume('IDENTIFIER', 'Expected input name').value);
         }
+        statements.push({ type: 'INPUT', names });
+      } else if (token.type === 'KEYWORD' && token.value === 'OUTPUT') {
+        consume('KEYWORD');
+        const labelToken = consume('IDENTIFIER', 'Expected output label');
+        
+        if (peek().type === 'EQUALS') {
+          consume('EQUALS');
+          const sourceId = parseExpression();
+          statements.push({ type: 'OUTPUT', name: labelToken.value, source: sourceId });
+        } else {
+          statements.push({ type: 'OUTPUT', name: labelToken.value, source: labelToken.value });
+        }
+      } else if (token.type === 'IDENTIFIER') {
+        const id = consume('IDENTIFIER').value;
+        consume('EQUALS', `Expected '=' after identifier '${id}'`);
+        const gateTypeToken = consume('IDENTIFIER', 'Expected gate type (e.g., AND, OR)');
+        const gateType = gateTypeToken.value.toUpperCase();
+        
+        consume('LPAREN', 'Expected "(" after gate type');
+        const args: string[] = [];
+        if (peek().type !== 'RPAREN') {
+          args.push(parseExpression());
+          while (peek().type === 'COMMA') {
+            consume('COMMA');
+            args.push(parseExpression());
+          }
+        }
+        consume('RPAREN', 'Expected ")"');
+        
+        statements.push({ type: 'GATE', id, gateType, inputs: args });
+      } else {
+        throw new Error(`Unexpected token '${token.value}' at line ${token.line}`);
       }
-      consume('RPAREN', 'Expected ")"');
-      
-      statements.push({ type: 'GATE', id, gateType, inputs: args });
-    } else {
-      throw new Error(`Unexpected token '${token.value}' at line ${token.line}`);
     }
+    
+    diagnostics.push({ severity: 'Info', message: `Successfully parsed ${statements.length} statements.` });
+  } catch (err: any) {
+    diagnostics.push({ severity: 'Error', message: err.message, line: peek().line });
+    // Re-throw if error is fatal to the structure, but we return what we have
   }
 
-  return statements;
+  return { statements, diagnostics };
 }

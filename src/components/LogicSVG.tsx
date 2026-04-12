@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { LayoutResult, LayoutNode, Wire } from '../lib/layout';
 import { Circuit } from '../lib/circuit';
 
@@ -50,6 +50,38 @@ const GatePaths: Record<string, React.ReactNode> = {
 };
 
 export function LogicSVG({ layout, circuit, onToggleInput }: LogicSVGProps) {
+  const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStart = useRef({ x: 0, y: 0 });
+  const svgRef = useRef<SVGSVGElement>(null);
+
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const zoomFactor = 0.1;
+    const delta = e.deltaY > 0 ? -zoomFactor : zoomFactor;
+    const newScale = Math.max(0.1, Math.min(5, transform.scale + delta));
+    setTransform(prev => ({ ...prev, scale: newScale }));
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button === 0) { // Left click for pan
+      setIsDragging(true);
+      dragStart.current = { x: e.clientX - transform.x, y: e.clientY - transform.y };
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (isDragging) {
+      setTransform(prev => ({
+        ...prev,
+        x: e.clientX - dragStart.current.x,
+        y: e.clientY - dragStart.current.y
+      }));
+    }
+  };
+
+  const handleMouseUp = () => setIsDragging(false);
+
   const renderNode = (node: LayoutNode) => {
     const circuitNode = circuit.nodes.get(node.id);
     const isActive = circuitNode?.value || false;
@@ -59,7 +91,10 @@ export function LogicSVG({ layout, circuit, onToggleInput }: LogicSVGProps) {
         <g 
           key={node.id} 
           transform={`translate(${node.x}, ${node.y})`}
-          onClick={() => onToggleInput?.(node.id)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleInput?.(node.id);
+          }}
           className="cursor-pointer"
         >
           <rect 
@@ -107,7 +142,6 @@ export function LogicSVG({ layout, circuit, onToggleInput }: LogicSVGProps) {
       <g key={node.id} transform={`translate(${node.x}, ${node.y})`}>
         {GatePaths[node.gateType || '']}
         
-        {/* Draw small lines for inputs and outputs to connect nicely */}
         {node.inPorts.map((port, i) => (
           <line 
             key={i}
@@ -116,7 +150,6 @@ export function LogicSVG({ layout, circuit, onToggleInput }: LogicSVGProps) {
           />
         ))}
         
-        {/* Output line */}
         {node.gateType === 'NAND' || node.gateType === 'NOR' || node.gateType === 'XNOR' ? (
           <line x1="60" y1="20" x2="70" y2="20" stroke={isActive ? "var(--accent)" : "var(--fg)"} strokeWidth="2" className="transition-colors duration-200" />
         ) : node.gateType === 'NOT' ? (
@@ -158,16 +191,22 @@ export function LogicSVG({ layout, circuit, onToggleInput }: LogicSVGProps) {
   };
 
   return (
-    <svg
-      width="100%"
-      height="100%"
-      viewBox={`0 0 ${layout.width} ${layout.height}`}
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <g transform="translate(20, 0)">
-        {layout.wires.map(renderWire)}
-        {layout.nodes.map(renderNode)}
-      </g>
-    </svg>
+    <div className="w-full h-full overflow-hidden cursor-move" onWheel={handleWheel} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}>
+      <svg
+        ref={svgRef}
+        width="100%"
+        height="100%"
+        viewBox={`0 0 ${layout.width} ${layout.height}`}
+        xmlns="http://www.w3.org/2000/svg"
+        className="select-none"
+      >
+        <g transform={`translate(${transform.x}, ${transform.y}) scale(${transform.scale})`}>
+          <g transform="translate(20, 0)">
+            {layout.wires.map(renderWire)}
+            {layout.nodes.map(renderNode)}
+          </g>
+        </g>
+      </svg>
+    </div>
   );
 }

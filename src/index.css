@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Newsreader", ui-serif, Georgia, serif;
+  --font-mono: "Fira Code", ui-monospace, SFMono-Regular, monospace;
+}
+
+:root {
+  --bg: #fafaf9; /* stone-50 */
+  --surface: #ffffff;
+  --fg: #1c1917; /* stone-900 */
+  --muted: #78716c; /* stone-500 */
+  --border: #e7e5e4; /* stone-200 */
+  --accent: #292524; /* stone-800 */
+  --accentFg: #ffffff;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

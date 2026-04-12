@@ -1,0 +1,5 @@
+{
+  "name": "LogicSVG",
+  "description": "A web application that generates logic gate SVG diagrams from text expressions, similar to Mermaid or PlantUML.",
+  "requestFramePermissions": []
+}

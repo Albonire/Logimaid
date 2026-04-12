@@ -1,0 +1,67 @@
+<svg width="600" height="300" viewBox="0 0 600 300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="600" height="300" fill="#fafaf9" rx="12" />
+  
+  <!-- Grid Lines -->
+  <g stroke="#e7e5e4" stroke-width="1" stroke-dasharray="4 4">
+    <line x1="50" y1="0" x2="50" y2="300" />
+    <line x1="150" y1="0" x2="150" y2="300" />
+    <line x1="250" y1="0" x2="250" y2="300" />
+    <line x1="350" y1="0" x2="350" y2="300" />
+    <line x1="450" y1="0" x2="450" y2="300" />
+    <line x1="550" y1="0" x2="550" y2="300" />
+    <line x1="0" y1="50" x2="600" y2="50" />
+    <line x1="0" y1="150" x2="600" y2="150" />
+    <line x1="0" y1="250" x2="600" y2="250" />
+  </g>
+
+  <!-- Wires -->
+  <g fill="none" stroke="#1c1917" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Input A to XOR and AND -->
+    <path d="M 100,100 L 150,100 L 150,85 L 200,85" />
+    <path d="M 150,100 L 150,215 L 200,215" />
+    
+    <!-- Input B to XOR and AND -->
+    <path d="M 100,200 L 160,200 L 160,115 L 200,115" />
+    <path d="M 160,200 L 160,245 L 200,245" />
+
+    <!-- XOR to Output Sum -->
+    <path d="M 260,100 L 350,100 L 400,100" />
+    
+    <!-- AND to Output Carry -->
+    <path d="M 240,230 L 350,230 L 400,230" />
+  </g>
+
+  <!-- Inputs -->
+  <g>
+    <rect x="60" y="85" width="40" height="30" rx="4" fill="#ffffff" stroke="#1c1917" stroke-width="2" />
+    <text x="80" y="105" text-anchor="middle" font-family="monospace" font-size="14" fill="#1c1917">A</text>
+    
+    <rect x="60" y="185" width="40" height="30" rx="4" fill="#292524" stroke="#1c1917" stroke-width="2" />
+    <text x="80" y="205" text-anchor="middle" font-family="monospace" font-size="14" fill="#ffffff">B</text>
+  </g>
+
+  <!-- XOR Gate -->
+  <g transform="translate(200, 80)">
+    <path d="M 0,0 Q 25,0 50,20 Q 25,40 0,40 Q 15,20 0,0 Z" fill="#ffffff" stroke="#1c1917" stroke-width="2" />
+    <path d="M -8,0 Q 7,20 -8,40" fill="none" stroke="#1c1917" stroke-width="2" />
+    <text x="21" y="25" text-anchor="middle" font-family="monospace" font-size="10" fill="#78716c">XOR</text>
+  </g>
+
+  <!-- AND Gate -->
+  <g transform="translate(200, 210)">
+    <path d="M 0,0 L 25,0 A 20,20 0 0,1 25,40 L 0,40 Z" fill="#ffffff" stroke="#1c1917" stroke-width="2" />
+    <text x="12" y="25" text-anchor="middle" font-family="monospace" font-size="10" fill="#78716c">AND</text>
+  </g>
+
+  <!-- Outputs -->
+  <g>
+    <rect x="400" y="85" width="60" height="30" rx="15" fill="#ffffff" stroke="#1c1917" stroke-width="2" />
+    <text x="430" y="105" text-anchor="middle" font-family="monospace" font-size="12" fill="#1c1917">Sum</text>
+    
+    <rect x="400" y="215" width="60" height="30" rx="15" fill="#ffffff" stroke="#1c1917" stroke-width="2" />
+    <text x="430" y="235" text-anchor="middle" font-family="monospace" font-size="12" fill="#1c1917">Carry</text>
+  </g>
+
+  <!-- Title -->
+  <text x="300" y="30" text-anchor="middle" font-family="serif" font-style="italic" font-size="20" fill="#1c1917">Half Adder Circuit</text>
+</svg>

@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Download, Play, AlertCircle, FileCode2, Table2 } from 'lucide-react';
+import { Download, Play, AlertCircle, FileCode2, Table2, Maximize2, Minimize2 } from 'lucide-react';
 import { parse } from './lib/parser';
 import { Circuit } from './lib/circuit';
 import { layoutCircuit, LayoutResult } from './lib/layout';
 import { LogicSVG } from './components/LogicSVG';
+import { Documentation } from './components/Documentation';
 
 const DEFAULT_CODE = `# Define inputs
 INPUT A, B
@@ -30,6 +31,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [inputState, setInputState] = useState<Record<string, boolean>>({});
   const [activeTab, setActiveTab] = useState<'diagram' | 'truthTable'>('diagram');
+  const [isMaximized, setIsMaximized] = useState(false);
   
   const svgContainerRef = useRef<HTMLDivElement>(null);
 
@@ -72,8 +74,42 @@ export default function App() {
 
   const handleDownloadSVG = () => {
     if (!svgContainerRef.current) return;
-    const svgElement = svgContainerRef.current.querySelector('svg');
-    if (!svgElement) return;
+    const originalSvg = svgContainerRef.current.querySelector('svg');
+    if (!originalSvg) return;
+
+    // Clone the SVG to avoid modifying the live UI
+    const svgElement = originalSvg.cloneNode(true) as SVGSVGElement;
+    
+    // Capture current CSS variable values from the theme
+    const rootStyle = getComputedStyle(document.documentElement);
+    const themeVars = ['bg', 'surface', 'fg', 'muted', 'border', 'accent', 'accentFg'];
+    const varDefinitions = themeVars
+      .map(v => `--${v}: ${rootStyle.getPropertyValue(`--${v}`).trim()};`)
+      .join('\n      ');
+
+    const fontMono = rootStyle.getPropertyValue('--font-mono').trim() || 'ui-monospace, monospace';
+    const fontSans = rootStyle.getPropertyValue('--font-sans').trim() || 'ui-sans-serif, system-ui';
+
+    // Create and inject style element
+    const styleElement = document.createElementNS("http://www.w3.org/2000/svg", "style");
+    styleElement.textContent = `
+      :root {
+        ${varDefinitions}
+        --font-mono: ${fontMono};
+        --font-sans: ${fontSans};
+      }
+      svg { background-color: var(--bg); font-family: var(--font-sans); }
+      text { font-family: var(--font-mono); }
+    `;
+    svgElement.prepend(styleElement);
+
+    // Add a background rectangle to maintain the Stone theme in the standalone file
+    const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    rect.setAttribute("width", "100%");
+    rect.setAttribute("height", "100%");
+    rect.setAttribute("fill", "var(--bg)");
+    // Insert after the style element but before existing content
+    svgElement.insertBefore(rect, svgElement.childNodes[1]);
 
     const serializer = new XMLSerializer();
     let source = serializer.serializeToString(svgElement);
@@ -87,7 +123,7 @@ export default function App() {
     
     const downloadLink = document.createElement("a");
     downloadLink.href = url;
-    downloadLink.download = "logic-circuit.svg";
+    downloadLink.download = `logic-circuit-${new Date().getTime()}.svg`;
     document.body.appendChild(downloadLink);
     downloadLink.click();
     document.body.removeChild(downloadLink);
@@ -142,12 +178,13 @@ export default function App() {
                   {ex.name}
                 </button>
               ))}
-            </div>
           </div>
+          <Documentation />
         </div>
+      </div>
 
         {/* Right Column: Visualization */}
-        <div className="lg:col-span-8 flex flex-col bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden min-h-[500px]">
+        <div className={`flex flex-col bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden min-h-[500px] transition-all duration-300 ${isMaximized ? 'fixed inset-4 z-50 shadow-2xl' : 'lg:col-span-8 relative'}`}>
           <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-2 bg-[var(--bg)]">
             <div className="flex items-center gap-1">
               <button
@@ -165,16 +202,25 @@ export default function App() {
                 Truth Table
               </button>
             </div>
-            
             {activeTab === 'diagram' && (
-              <button
-                onClick={handleDownloadSVG}
-                disabled={!layoutResult}
-                className="flex items-center gap-1.5 text-sm text-[var(--muted)] hover:text-[var(--fg)] disabled:opacity-50 transition-colors"
-              >
-                <Download size={16} />
-                Export SVG
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleDownloadSVG}
+                  disabled={!layoutResult}
+                  className="flex items-center gap-1.5 text-sm text-[var(--muted)] hover:text-[var(--fg)] disabled:opacity-50 transition-colors"
+                >
+                  <Download size={16} />
+                  Export SVG
+                </button>
+                <div className="w-px h-4 bg-[var(--border)] mx-1" />
+                <button
+                  onClick={() => setIsMaximized(!isMaximized)}
+                  className="flex items-center gap-1.5 text-sm text-[var(--muted)] hover:text-[var(--fg)] transition-colors p-1 hover:bg-[var(--surface)] rounded cursor-pointer"
+                  title={isMaximized ? "Minimize" : "Maximize"}
+                >
+                  {isMaximized ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+                </button>
+              </div>
             )}
           </div>
           

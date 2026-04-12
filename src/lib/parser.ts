@@ -99,9 +99,15 @@ export interface OutputStatement {
 export function parse(input: string): Statement[] {
   const tokens = tokenize(input);
   let current = 0;
+  let anonCounter = 0;
+  const statements: Statement[] = [];
 
   function peek(): Token {
     return tokens[current];
+  }
+
+  function lookAhead(n: number = 1): Token {
+    return tokens[current + n] || tokens[tokens.length - 1];
   }
 
   function consume(type: TokenType, msg?: string): Token {
@@ -111,7 +117,32 @@ export function parse(input: string): Statement[] {
     throw new Error(msg || `Expected ${type}, got ${peek().type} at line ${peek().line}`);
   }
 
-  const statements: Statement[] = [];
+  function parseExpression(): string {
+    const token = consume('IDENTIFIER', 'Expected identifier or gate type');
+    
+    if (peek().type === 'LPAREN') {
+      // It's a nested gate call: GATETYPE(arg1, arg2...)
+      const gateType = token.value.toUpperCase();
+      consume('LPAREN');
+      
+      const args: string[] = [];
+      if (peek().type !== 'RPAREN') {
+        args.push(parseExpression());
+        while (peek().type === 'COMMA') {
+          consume('COMMA');
+          args.push(parseExpression());
+        }
+      }
+      consume('RPAREN');
+
+      const anonId = `_g${anonCounter++}`;
+      statements.push({ type: 'GATE', id: anonId, gateType, inputs: args });
+      return anonId;
+    } else {
+      // It's a simple identifier (variable/input)
+      return token.value;
+    }
+  }
 
   while (peek().type !== 'EOF') {
     const token = peek();
@@ -127,29 +158,36 @@ export function parse(input: string): Statement[] {
       statements.push({ type: 'INPUT', names });
     } else if (token.type === 'KEYWORD' && token.value === 'OUTPUT') {
       consume('KEYWORD');
-      const nameOrSource = consume('IDENTIFIER', 'Expected output name or source').value;
+      const labelToken = consume('IDENTIFIER', 'Expected output label');
+      
       if (peek().type === 'EQUALS') {
         consume('EQUALS');
-        const source = consume('IDENTIFIER', 'Expected source identifier').value;
-        statements.push({ type: 'OUTPUT', name: nameOrSource, source });
+        const sourceId = parseExpression();
+        statements.push({ type: 'OUTPUT', name: labelToken.value, source: sourceId });
       } else {
-        statements.push({ type: 'OUTPUT', name: nameOrSource, source: nameOrSource });
+        // Shorthand: OUTPUT Y (matches source with same name)
+        statements.push({ type: 'OUTPUT', name: labelToken.value, source: labelToken.value });
       }
     } else if (token.type === 'IDENTIFIER') {
       const id = consume('IDENTIFIER').value;
       consume('EQUALS', `Expected '=' after identifier '${id}'`);
-      const gateType = consume('IDENTIFIER', 'Expected gate type (e.g., AND, OR)').value.toUpperCase();
-      consume('LPAREN', 'Expected "("');
-      const inputs: string[] = [];
+      
+      // Right hand side should be a gate expression
+      const gateTypeToken = consume('IDENTIFIER', 'Expected gate type (e.g., AND, OR)');
+      const gateType = gateTypeToken.value.toUpperCase();
+      
+      consume('LPAREN', 'Expected "(" after gate type');
+      const args: string[] = [];
       if (peek().type !== 'RPAREN') {
-        inputs.push(consume('IDENTIFIER', 'Expected input identifier').value);
+        args.push(parseExpression());
         while (peek().type === 'COMMA') {
           consume('COMMA');
-          inputs.push(consume('IDENTIFIER', 'Expected input identifier').value);
+          args.push(parseExpression());
         }
       }
       consume('RPAREN', 'Expected ")"');
-      statements.push({ type: 'GATE', id, gateType, inputs });
+      
+      statements.push({ type: 'GATE', id, gateType, inputs: args });
     } else {
       throw new Error(`Unexpected token '${token.value}' at line ${token.line}`);
     }

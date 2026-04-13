@@ -3,7 +3,7 @@ import {
   Download, Play, AlertCircle, FileCode2, Table2, 
   Maximize2, Minimize2, Image as ImageIcon, ChevronDown, 
   Sun, Moon, Terminal, FileSpreadsheet, CheckCircle2, 
-  Info, AlertTriangle
+  Info, AlertTriangle, Copy
 } from 'lucide-react';
 import { parse, Diagnostic } from './lib/parser';
 import { Circuit } from './lib/circuit';
@@ -29,7 +29,7 @@ OUTPUT Cout
 const EXAMPLES = [
   { name: 'Half Adder', code: `INPUT A, B\n\nXOR1 = XOR(A, B)\nAND1 = AND(A, B)\n\nOUTPUT Sum = XOR1\nOUTPUT Carry = AND1` },
   { name: 'Full Adder', code: `INPUT A, B, Cin\n\nSum = XOR(XOR(A, B), Cin)\nCout = OR(AND(A, B), AND(XOR(A, B), Cin))\n\nOUTPUT Sum\nOUTPUT Cout` },
-  { name: 'SR Latch', code: `INPUT S, R\n\nNOR1 = NOR(R, NOR2)\nNOR2 = NOR(S, NOR1)\n\nOUTPUT Q = NOR1\nOUTPUT Q_not = NOR2` },
+  { name: '2-Bit Comparator', code: `INPUT A1, A0, B1, B0\n\n# A > B logic\nG1 = AND(A1, NOT(B1))\nG2 = AND(A0, NOT(B0))\nG3 = XNOR(A1, B1)\nGT = OR(G1, AND(G3, G2))\n\n# A < B logic\nL1 = AND(NOT(A1), B1)\nL2 = AND(NOT(A0), B0)\nL3 = XNOR(A1, B1)\nLT = OR(L1, AND(L3, L2))\n\n# Equal\nEQ = AND(XNOR(A1, B1), XNOR(A0, B0))\n\nOUTPUT A_gt_B = GT\nOUTPUT A_lt_B = LT\nOUTPUT Equal = EQ` },
 ];
 
 export default function App() {
@@ -40,6 +40,7 @@ export default function App() {
   const [inputState, setInputState] = useState<Record<string, boolean>>({});
   const [activeTab, setActiveTab] = useState<'diagram' | 'truthTable' | 'logs'>('diagram');
   const [isMaximized, setIsMaximized] = useState(false);
+  const [evalVersion, setEvalVersion] = useState(0);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('theme');
@@ -84,6 +85,7 @@ export default function App() {
       setLayoutResult(result);
       setInputState(initialInputs);
       newCircuit.evaluate(initialInputs);
+      setEvalVersion(v => v + 1);
     } catch (err: any) {
       setDiagnostics([{ severity: 'Error', message: err.message || 'System error during compilation' }]);
       setCircuit(null);
@@ -100,8 +102,7 @@ export default function App() {
     const newState = { ...inputState, [inputId]: !inputState[inputId] };
     setInputState(newState);
     circuit.evaluate(newState);
-    // Force re-render to show updated wire states
-    setCircuit(Object.assign(Object.create(Object.getPrototypeOf(circuit)), circuit));
+    setEvalVersion(v => v + 1);
   };
 
   const getHighFidelitySVG = (): { source: string, width: number, height: number } | null => {
@@ -138,10 +139,14 @@ export default function App() {
     svgElement.insertBefore(rect, svgElement.childNodes[1]);
 
     const serializer = new XMLSerializer();
-    let source = serializer.serializeToString(svgElement);
-    if (!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)) {
-        source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+    
+    // Reset pan/zoom transform before exporting
+    const transformGroup = svgElement.querySelector('.logic-transform-group');
+    if (transformGroup) {
+      transformGroup.removeAttribute('transform');
     }
+
+    let source = serializer.serializeToString(svgElement);
     return {
       source: '<?xml version="1.0" standalone="no"?>\r\n' + source,
       width: originalSvg.viewBox.baseVal.width || 800,
@@ -186,6 +191,48 @@ export default function App() {
     img.src = url;
   };
 
+  const handleCopyImage = async () => {
+    const result = getHighFidelitySVG();
+    if (!result) return;
+    
+    const canvas = document.createElement('canvas');
+    const scale = 3; // Higher scale for clipboard
+    canvas.width = result.width * scale;
+    canvas.height = result.height * scale;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    const img = new Image();
+    const svgBlob = new Blob([result.source], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
+    
+    img.onload = async () => {
+      try {
+        ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        
+        canvas.toBlob(async (blob) => {
+          if (blob) {
+            try {
+              const item = new ClipboardItem({ 'image/png': blob });
+              await navigator.clipboard.write([item]);
+              alert('Diagram copied to clipboard as PNG!');
+            } catch (err) {
+              console.error('Clipboard error:', err);
+              alert('Could not copy to clipboard. Please check browser permissions.');
+            }
+          }
+          URL.revokeObjectURL(url);
+        }, 'image/png');
+      } catch (err) {
+        console.error('Export error:', err);
+        URL.revokeObjectURL(url);
+      }
+    };
+    img.src = url;
+  };
+
   return (
     <div className="min-h-screen flex flex-col transition-colors duration-300">
       <header className="border-b border-[var(--border)] bg-[var(--surface)] px-6 py-4 flex items-center justify-between shadow-sm z-30">
@@ -200,15 +247,16 @@ export default function App() {
         </div>
         
         <div className="flex items-center gap-4">
-          <button 
+          <button
             onClick={() => setIsDarkMode(!isDarkMode)}
             className="p-2 rounded-full hover:bg-[var(--bg)] transition-colors text-[var(--muted)] hover:text-[var(--fg)] cursor-pointer border border-transparent hover:border-[var(--border)]"
+            aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
             title="Toggle theme"
           >
             {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
           </button>
           <div className="w-px h-6 bg-[var(--border)]" />
-          <p className="text-xs text-[var(--muted)] font-medium hidden sm:block">Anderson González</p>
+          <p className="text-xs text-[var(--muted)] font-medium hidden sm:block">Fabian González</p>
         </div>
       </header>
 
@@ -281,7 +329,7 @@ export default function App() {
               >
                 <Terminal size={14} />
                 Compiler Logs
-                {diagnostics.some(d => d.severity === 'Error') && <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />}
+                {diagnostics.some(d => d.severity === 'Error') && <span className="w-2 h-2 rounded-full bg-[var(--error)] animate-pulse" />}
               </button>
             </div>
             
@@ -306,6 +354,10 @@ export default function App() {
                         <ImageIcon size={14} className="text-[var(--muted)]" />
                         Image (JPG)
                       </button>
+                      <button onClick={handleCopyImage} className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-left hover:bg-[var(--bg)] text-[var(--fg)] transition-colors cursor-pointer border-t border-[var(--border)]">
+                        <Copy size={14} className="text-[var(--muted)]" />
+                        Copy Image
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -314,6 +366,7 @@ export default function App() {
               <button
                 onClick={() => setIsMaximized(!isMaximized)}
                 className="flex items-center gap-1.5 text-sm text-[var(--muted)] hover:text-[var(--fg)] transition-colors p-1.5 hover:bg-[var(--surface)] rounded cursor-pointer"
+                aria-label={isMaximized ? "Minimize" : "Maximize"}
                 title={isMaximized ? "Minimize" : "Maximize"}
               >
                 {isMaximized ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
@@ -321,10 +374,12 @@ export default function App() {
             </div>
           </div>
           
-          <div className="flex-1 relative overflow-auto p-6 bg-stone-50/50 dark:bg-stone-950/20" ref={svgContainerRef}>
+          <div className="flex-1 relative overflow-auto p-6 bg-[var(--bg)]" ref={svgContainerRef}>
             {activeTab === 'diagram' ? (
               circuit && layoutResult ? (
-                <LogicSVG layout={layoutResult} circuit={circuit} onToggleInput={handleToggleInput} />
+                <React.Fragment key={evalVersion}>
+                  <LogicSVG layout={layoutResult} circuit={circuit} onToggleInput={handleToggleInput} />
+                </React.Fragment>
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center text-[var(--muted)] text-sm italic">
                   Complete the circuit definition to see the diagram.
@@ -353,8 +408,12 @@ function LogsArea({ diagnostics }: { diagnostics: Diagnostic[] }) {
     <div className="flex flex-col gap-2 font-mono text-xs">
       {diagnostics.map((diag, i) => {
         const Icon = diag.severity === 'Error' ? AlertCircle : diag.severity === 'Warning' ? AlertTriangle : Info;
-        const colorClass = diag.severity === 'Error' ? 'text-red-600 border-red-100 bg-red-50 dark:bg-red-900/10' : diag.severity === 'Warning' ? 'text-amber-600 border-amber-100 bg-amber-50 dark:bg-amber-900/10' : 'text-stone-600 border-stone-100 bg-stone-50 dark:bg-stone-900/10';
-        
+        const colorClass = diag.severity === 'Error'
+          ? 'text-[var(--error)] border-[var(--errorBorder)] bg-[var(--errorBg)]'
+          : diag.severity === 'Warning'
+            ? 'text-[var(--warning)] border-[var(--warningBorder)] bg-[var(--warningBg)]'
+            : 'text-[var(--info)] border-[var(--infoBorder)] bg-[var(--infoBg)]';
+
         return (
           <div key={i} className={`p-3 border rounded-md flex gap-3 ${colorClass} animate-in fade-in slide-in-from-left-2 duration-300`}>
             <Icon size={14} className="shrink-0 mt-0.5" />
@@ -403,7 +462,7 @@ function TruthTableView({ circuit }: { circuit: Circuit }) {
         <div className="flex flex-col">
           <p className="text-xs font-medium text-[var(--fg)]">Total State Possibilities: {data.totalRows}</p>
           {data.totalRows > 100 && (
-            <p className="text-[10px] text-amber-600 font-medium">⚠️ Previewing first 100 states only. Download CSV for full data.</p>
+            <p className="text-[10px] text-[var(--warning)] font-medium"> Previewing first 100 states only. Download CSV for full data.</p>
           )}
         </div>
         <button 

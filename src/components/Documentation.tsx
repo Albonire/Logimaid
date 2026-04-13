@@ -21,7 +21,7 @@ function CopySnippet({ code }: { code: string }) {
         className="absolute top-2 right-2 p-1.5 rounded-md bg-[var(--surface)] border border-[var(--border)] text-[var(--muted)] hover:text-[var(--fg)] opacity-0 group-hover:opacity-100 transition-all shadow-sm cursor-pointer"
         title="Copy to clipboard"
       >
-        {copied ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
+        {copied ? <Check size={14} className="text-[var(--success)]" /> : <Copy size={14} />}
       </button>
     </div>
   );
@@ -74,9 +74,10 @@ export function Documentation() {
 
   return (
     <div className="flex flex-col border border-[var(--border)] bg-[var(--surface)] rounded-lg overflow-hidden">
-      <button
+      <div
+        id="documentation-header"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between px-4 py-3 bg-[var(--bg)] hover:bg-[var(--surface)] transition-colors"
+        className="flex items-center justify-between px-4 py-3 bg-[var(--bg)] hover:bg-[var(--surface)] transition-colors cursor-pointer"
       >
         <div className="flex items-center gap-2 text-sm font-serif font-medium">
           <BookOpen size={16} className="text-[var(--muted)]" />
@@ -88,11 +89,11 @@ export function Documentation() {
             className="p-1.5 rounded-md hover:bg-[var(--surface)] text-[var(--muted)] hover:text-[var(--fg)] transition-all cursor-pointer"
             title="Copy all documentation"
           >
-            {allCopied ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
+            {allCopied ? <Check size={14} className="text-[var(--success)]" /> : <Copy size={14} />}
           </button>
           {isOpen ? <ChevronUp size={16} className="text-[var(--muted)]" /> : <ChevronDown size={16} className="text-[var(--muted)]" />}
         </div>
-      </button>
+      </div>
 
       {isOpen && (
         <div className="p-4 flex flex-col gap-6 text-sm overflow-y-auto max-h-[500px]">
@@ -142,9 +143,9 @@ export function Documentation() {
             </div>
           </section>
 
-          <section className="flex flex-col gap-3 p-4 bg-stone-100 border border-stone-200 rounded-lg">
+          <section className="flex flex-col gap-3 p-4 bg-[var(--bg)] border border-[var(--border)] rounded-lg">
             <h4 className="flex items-center gap-2 font-medium text-[var(--fg)]">
-              <Sparkles size={14} className="text-amber-600" />
+              <Sparkles size={14} className="text-[var(--warning)]" />
               Advanced Features
             </h4>
             <ul className="list-disc list-inside text-[var(--muted)] space-y-1 text-xs">

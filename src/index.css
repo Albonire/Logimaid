@@ -1,44 +1,79 @@
 @import "tailwindcss";
 
+/* 1. Configure the 'dark' variant for class-based mode in Tailwind 4 */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* 2. Register fonts with Tailwind theme */
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Newsreader", ui-serif, Georgia, serif;
   --font-mono: "Fira Code", ui-monospace, SFMono-Regular, monospace;
 }
 
+/* 3. Color custom properties + direct styles on :root and body */
 :root {
-  --bg: #fafaf9; /* stone-50 */
+  --bg: #fafaf9;
   --surface: #ffffff;
-  --fg: #1c1917; /* stone-900 */
-  --muted: #78716c; /* stone-500 */
-  --border: #e7e5e4; /* stone-200 */
-  --accent: #292524; /* stone-800 */
+  --fg: #1c1917;
+  --muted: #78716c;
+  --border: #e7e5e4;
+  --accent: #292524;
   --accentFg: #ffffff;
   --success: #166534;
+  --successBg: #f0fdf4;
+  --successBorder: #bbf7d0;
   --error: #991b1b;
+  --errorBg: #fef2f2;
+  --errorBorder: #fecaca;
   --warning: #92400e;
+  --warningBg: #fffbeb;
+  --warningBorder: #fde68a;
+  --info: #78716c;
+  --infoBg: #fafaf9;
+  --infoBorder: #e7e5e4;
 }
-
-:root.dark {
-  --bg: #0c0a09; /* stone-950 */
-  --surface: #1c1917; /* stone-900 */
-  --fg: #f5f5f4; /* stone-100 */
-  --muted: #a8a29e; /* stone-400 */
-  --border: #292524; /* stone-800 */
-  --accent: #e7e5e4; /* stone-200 */
-  --accentFg: #0c0a09; /* stone-950 */
-  --success: #4ade80;
-  --error: #f87171;
-  --warning: #fbbf24;
-}
-
-body {
+:root, body {
   background-color: var(--bg);
   color: var(--fg);
-  font-family: var(--font-sans);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* 4. Dark Mode Overrides - html.dark has higher specificity */
+html.dark {
+  --bg: #0c0a09;
+  --surface: #1c1917;
+  --fg: #f5f5f4;
+  --muted: #a8a29e;
+  --border: #292524;
+  --accent: #e7e5e4;
+  --accentFg: #0c0a09;
+  --success: #4ade80;
+  --successBg: #052e16;
+  --successBorder: #166534;
+  --error: #f87171;
+  --errorBg: #450a0a;
+  --errorBorder: #991b1b;
+  --warning: #fbbf24;
+  --warningBg: #451a03;
+  --warningBorder: #92400e;
+  --info: #a8a29e;
+  --infoBg: #0c0a09;
+  --infoBorder: #292524;
+}
+html.dark, html.dark body {
+  background-color: var(--bg);
+  color: var(--fg);
+}
+
+@layer base {
+  html, body {
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 }
 
 /* Custom scrollbar for premium look */

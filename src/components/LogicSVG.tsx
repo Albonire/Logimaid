@@ -10,44 +10,69 @@ interface LogicSVGProps {
 
 const GatePaths: Record<string, React.ReactNode> = {
   AND: (
-    <path d="M 0,0 L 30,0 A 20,20 0 0,1 30,40 L 0,40 Z" fill="var(--surface)" stroke="var(--fg)" strokeWidth="2" />
+    <g>
+      {/* Main AND gate shape: arc center moved to x=40, right edge now at x=60 */}
+      <path d="M 0,0 L 40,0 A 20,20 0 0,1 40,40 L 0,40 Z" fill="var(--surface)" stroke="var(--fg)" strokeWidth="2" />
+    </g>
   ),
   NAND: (
     <g>
+      {/* Main NAND gate shape: arc center at x=30, flat edge at x=30 */}
       <path d="M 0,0 L 30,0 A 20,20 0 0,1 30,40 L 0,40 Z" fill="var(--surface)" stroke="var(--fg)" strokeWidth="2" />
+      {/* Connector from flat edge to bubble */}
+      <line x1="30" y1="20" x2="50" y2="20" stroke="var(--fg)" strokeWidth="2" />
+      {/* Inversion bubble at x=55 (ends at x=60) */}
       <circle cx="55" cy="20" r="5" fill="var(--surface)" stroke="var(--fg)" strokeWidth="2" />
-      <line x1="50" y1="20" x2="50" y2="20" stroke="var(--fg)" strokeWidth="2" />
     </g>
   ),
   OR: (
-    <path d="M 0,0 Q 25,0 50,20 Q 25,40 0,40 Q 15,20 0,0 Z" fill="var(--surface)" stroke="var(--fg)" strokeWidth="2" />
+    <g>
+      {/* Main OR gate shape: stretched to reach x=60 at the tip */}
+      <path d="M 0,0 Q 30,0 60,20 Q 30,40 0,40 Q 18,20 0,0 Z" fill="var(--surface)" stroke="var(--fg)" strokeWidth="2" />
+    </g>
   ),
   NOR: (
     <g>
-      <path d="M 0,0 Q 25,0 50,20 Q 25,40 0,40 Q 15,20 0,0 Z" fill="var(--surface)" stroke="var(--fg)" strokeWidth="2" />
+      {/* Main NOR gate shape: stretched to x=60 */}
+      <path d="M 0,0 Q 30,0 60,20 Q 30,40 0,40 Q 18,20 0,0 Z" fill="var(--surface)" stroke="var(--fg)" strokeWidth="2" />
+      {/* Inversion bubble at x=55 (ends at x=60) */}
       <circle cx="55" cy="20" r="5" fill="var(--surface)" stroke="var(--fg)" strokeWidth="2" />
     </g>
   ),
   XOR: (
     <g>
-      <path d="M 0,0 Q 25,0 50,20 Q 25,40 0,40 Q 15,20 0,0 Z" fill="var(--surface)" stroke="var(--fg)" strokeWidth="2" />
+      {/* Main XOR gate shape: stretched to x=60 */}
+      <path d="M 0,0 Q 30,0 60,20 Q 30,40 0,40 Q 18,20 0,0 Z" fill="var(--surface)" stroke="var(--fg)" strokeWidth="2" />
+      {/* Extra curved input line (XOR signature) */}
       <path d="M -8,0 Q 7,20 -8,40" fill="none" stroke="var(--fg)" strokeWidth="2" />
     </g>
   ),
   XNOR: (
     <g>
-      <path d="M 0,0 Q 25,0 50,20 Q 25,40 0,40 Q 15,20 0,0 Z" fill="var(--surface)" stroke="var(--fg)" strokeWidth="2" />
+      {/* Main XNOR gate shape: stretched to x=60 */}
+      <path d="M 0,0 Q 30,0 60,20 Q 30,40 0,40 Q 18,20 0,0 Z" fill="var(--surface)" stroke="var(--fg)" strokeWidth="2" />
+      {/* Extra curved input line (XNOR signature) */}
       <path d="M -8,0 Q 7,20 -8,40" fill="none" stroke="var(--fg)" strokeWidth="2" />
+      {/* Inversion bubble at x=55 (ends at x=60) */}
       <circle cx="55" cy="20" r="5" fill="var(--surface)" stroke="var(--fg)" strokeWidth="2" />
     </g>
   ),
   NOT: (
     <g>
-      <path d="M 0,5 L 30,20 L 0,35 Z" fill="var(--surface)" stroke="var(--fg)" strokeWidth="2" />
-      <circle cx="35" cy="20" r="5" fill="var(--surface)" stroke="var(--fg)" strokeWidth="2" />
+      {/* Triangle: tip at x=50, base at x=0 */}
+      <path d="M 0,5 L 50,20 L 0,35 Z" fill="var(--surface)" stroke="var(--fg)" strokeWidth="2" />
+      {/* Inversion bubble at x=55 (ends at x=60) */}
+      <circle cx="55" cy="20" r="5" fill="var(--surface)" stroke="var(--fg)" strokeWidth="2" />
     </g>
   ),
 };
+
+// All gates visually reach x=60, output stub extends from 60→70
+// Wire starts at x+60 (layout outPort), gate shape ends at x=60 (local)
+const gateOutputX = 60;
+
+// Input stub: all gates receive inputs at x=-10
+const gateInputX = -10;
 
 export function LogicSVG({ layout, circuit, onToggleInput }: LogicSVGProps) {
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
@@ -88,8 +113,8 @@ export function LogicSVG({ layout, circuit, onToggleInput }: LogicSVGProps) {
 
     if (node.type === 'INPUT') {
       return (
-        <g 
-          key={node.id} 
+        <g
+          key={node.id}
           transform={`translate(${node.x}, ${node.y})`}
           onClick={(e) => {
             e.stopPropagation();
@@ -97,21 +122,20 @@ export function LogicSVG({ layout, circuit, onToggleInput }: LogicSVGProps) {
           }}
           className="cursor-pointer"
         >
-          <rect 
-            x="0" y="5" width="40" height="30" rx="4" 
-            fill={isActive ? "var(--accent)" : "var(--surface)"} 
-            stroke="var(--fg)" strokeWidth="2" 
+          <rect
+            x="0" y="5" width={node.width} height="30" rx="4"
+            fill={isActive ? "var(--accent)" : "var(--surface)"}
+            stroke="var(--fg)" strokeWidth="2"
             className="transition-colors duration-200"
           />
-          <text 
-            x="20" y="25" textAnchor="middle" 
-            fontSize="14" fontFamily="var(--font-mono)" fontWeight="500" 
+          <text
+            x={node.width / 2} y="25" textAnchor="middle"
+            fontSize="14" fontFamily="var(--font-mono)" fontWeight="500"
             fill={isActive ? "var(--accentFg)" : "var(--fg)"}
             className="transition-colors duration-200 select-none"
           >
             {node.label}
           </text>
-          <line x1="40" y1="20" x2="50" y2="20" stroke={isActive ? "var(--accent)" : "var(--fg)"} strokeWidth="2" className="transition-colors duration-200" />
         </g>
       );
     }
@@ -119,15 +143,14 @@ export function LogicSVG({ layout, circuit, onToggleInput }: LogicSVGProps) {
     if (node.type === 'OUTPUT') {
       return (
         <g key={node.id} transform={`translate(${node.x}, ${node.y})`}>
-          <line x1="-10" y1="20" x2="0" y2="20" stroke={isActive ? "var(--accent)" : "var(--fg)"} strokeWidth="2" className="transition-colors duration-200" />
-          <rect 
-            x="0" y="5" width="40" height="30" rx="15" 
-            fill={isActive ? "var(--accent)" : "var(--surface)"} 
-            stroke="var(--fg)" strokeWidth="2" 
+          <rect
+            x="0" y="5" width={node.width} height="30" rx="15"
+            fill={isActive ? "var(--accent)" : "var(--surface)"}
+            stroke="var(--fg)" strokeWidth="2"
             className="transition-colors duration-200"
           />
           <text 
-            x="20" y="25" textAnchor="middle" 
+            x={node.width / 2} y="25" textAnchor="middle" 
             fontSize="14" fontFamily="var(--font-mono)" fontWeight="500" 
             fill={isActive ? "var(--accentFg)" : "var(--fg)"}
             className="transition-colors duration-200 select-none"
@@ -140,23 +163,27 @@ export function LogicSVG({ layout, circuit, onToggleInput }: LogicSVGProps) {
 
     return (
       <g key={node.id} transform={`translate(${node.x}, ${node.y})`}>
-        {GatePaths[node.gateType || '']}
-        
+        {/* Input stub lines: all connect at x=-10 to the gate body. 
+            Moved before gate paths so they are behind the opaque gate body. */}
         {node.inPorts.map((port, i) => (
-          <line 
+          <line
             key={i}
-            x1="-10" y1={port.y - node.y} x2={node.gateType === 'OR' || node.gateType === 'NOR' || node.gateType === 'XOR' || node.gateType === 'XNOR' ? 8 : 0} y2={port.y - node.y} 
-            stroke="var(--fg)" strokeWidth="2" 
+            x1={gateInputX} y1={port.y - node.y}
+            x2={20} y2={port.y - node.y}
+            stroke="var(--fg)" strokeWidth="2"
           />
         ))}
-        
-        {node.gateType === 'NAND' || node.gateType === 'NOR' || node.gateType === 'XNOR' ? (
-          <line x1="60" y1="20" x2="70" y2="20" stroke={isActive ? "var(--accent)" : "var(--fg)"} strokeWidth="2" className="transition-colors duration-200" />
-        ) : node.gateType === 'NOT' ? (
-          <line x1="40" y1="20" x2="50" y2="20" stroke={isActive ? "var(--accent)" : "var(--fg)"} strokeWidth="2" className="transition-colors duration-200" />
-        ) : (
-          <line x1="50" y1="20" x2="60" y2="20" stroke={isActive ? "var(--accent)" : "var(--fg)"} strokeWidth="2" className="transition-colors duration-200" />
-        )}
+
+        {GatePaths[node.gateType || '']}
+
+        {/* Output stub line: all connect from x=60 to x=70 */}
+        <line
+          x1={gateOutputX} y1="20"
+          x2={gateOutputX + 10} y2="20"
+          stroke={isActive ? "var(--accent)" : "var(--fg)"}
+          strokeWidth="2"
+          className="transition-colors duration-200"
+        />
       </g>
     );
   };
@@ -200,7 +227,7 @@ export function LogicSVG({ layout, circuit, onToggleInput }: LogicSVGProps) {
         xmlns="http://www.w3.org/2000/svg"
         className="select-none"
       >
-        <g transform={`translate(${transform.x}, ${transform.y}) scale(${transform.scale})`}>
+        <g className="logic-transform-group" transform={`translate(${transform.x}, ${transform.y}) scale(${transform.scale})`}>
           <g transform="translate(20, 0)">
             {layout.wires.map(renderWire)}
             {layout.nodes.map(renderNode)}

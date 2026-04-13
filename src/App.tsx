@@ -258,7 +258,9 @@ export default function App() {
             {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
           </button>
           <div className="w-px h-6 bg-[var(--border)]" />
-          <p className="text-xs text-[var(--muted)] font-medium hidden sm:block">Fabian González</p>
+          <link rel="stylesheet" href="github.com/Albonire">
+            <p className="text-xs text-[var(--muted)] font-medium hidden sm:block">Fabian González</p>
+          </link>
         </div>
       </header>
 

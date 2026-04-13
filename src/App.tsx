@@ -237,9 +237,11 @@ export default function App() {
     <div className="min-h-screen flex flex-col transition-colors duration-300">
       <header className="border-b border-[var(--border)] bg-[var(--surface)] px-6 py-4 flex items-center justify-between shadow-sm z-30">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-[var(--accent)] rounded-md flex items-center justify-center text-[var(--accentFg)] font-serif italic font-medium transition-transform hover:rotate-12">
-            L
-          </div>
+          <img 
+            src="/favicon.svg" 
+            alt="LogicSVG Logo" 
+            className="w-8 h-8 rounded-md transition-transform hover:scale-110 hover:rotate-6 cursor-pointer" 
+          />
           <div>
             <h1 className="text-xl font-serif font-medium tracking-tight">LogicSVG</h1>
             <p className="text-[10px] uppercase tracking-widest text-[var(--muted)] font-bold">Pro Circuit Engine</p>

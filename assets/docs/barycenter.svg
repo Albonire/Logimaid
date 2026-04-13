@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="600" height="300" viewBox="0 0 600 300" xmlns="http://www.w3.org/2000/svg">
+  <!-- Layer L-1 -->
+  <rect x="50" y="50" width="40" height="30" rx="4" fill="#f8fafc" stroke="#64748b" stroke-width="2" />
+  <text x="50" y="45" font-family="sans-serif" font-size="12" fill="#1e293b">Input A (y=65)</text>
+
+  <rect x="50" y="200" width="40" height="30" rx="4" fill="#f8fafc" stroke="#64748b" stroke-width="2" />
+  <text x="50" y="195" font-family="sans-serif" font-size="12" fill="#1e293b">Input B (y=215)</text>
+
+  <!-- Layer L -->
+  <!-- Before sorting -->
+  <g opacity="0.4">
+    <rect x="300" y="220" width="80" height="40" rx="4" fill="#f8fafc" stroke="#64748b" stroke-width="2" />
+    <text x="390" y="245" font-family="sans-serif" font-size="12" fill="#1e293b">AND_1 (Original)</text>
+  </g>
+
+  <!-- After sorting -->
+  <rect x="300" y="120" width="80" height="40" rx="4" fill="#f1f5f9" stroke="#3b82f6" stroke-width="2" />
+  <text x="390" y="145" font-family="sans-serif" font-size="12" font-weight="bold" fill="#1e293b">AND_1 (Optimal Position)</text>
+  <text x="390" y="160" font-family="serif" font-size="14" font-style="italic" fill="#1e293b">y_optimal = (65 + 215) / 2 = 140</text>
+
+  <!-- Lines -->
+  <path d="M 90 65 L 300 130" stroke="#94a3b8" stroke-width="1.5" fill="none" />
+  <path d="M 90 215 L 300 150" stroke="#94a3b8" stroke-width="1.5" fill="none" />
+
+  <!-- Vertical Axis -->
+  <line x1="300" y1="20" x2="300" y2="280" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="4" />
+  <text x="260" y="30" font-family="sans-serif" font-size="12" fill="#1e293b">Layer L</text>
+</svg>

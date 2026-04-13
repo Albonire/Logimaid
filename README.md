@@ -78,12 +78,11 @@ npm install
 npm run dev
 ```
 
-## Project Structure
+## Documentation
 
-- `/src/lib/parser.ts`: Tokenizer and AST parser for the circuit language.
-- `/src/lib/circuit.ts`: Logic engine and simulation core.
-- `/src/lib/layout.ts`: Layout algorithms for gates and wire routing.
-- `/src/components/LogicSVG.tsx`: SVG rendering component.
+For a deep dive into the engine's internals, including parsing strategies, logical simulation, and the Sugiyama-based layout algorithms, see the [Architecture Documentation](./Architecture.md).
+
+## Project Structure
 
 ## License
 MIT

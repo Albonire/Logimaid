@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="600" height="200" viewBox="0 0 600 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Start Node -->
+  <rect x="20" y="80" width="60" height="40" rx="4" fill="#f8fafc" stroke="#64748b" stroke-width="2" />
+  <text x="30" y="105" font-family="sans-serif" font-size="11" fill="#1e293b">Source</text>
+
+  <!-- Target Node -->
+  <rect x="520" y="80" width="60" height="40" rx="4" fill="#f8fafc" stroke="#64748b" stroke-width="2" />
+  <text x="530" y="105" font-family="sans-serif" font-size="11" fill="#1e293b">Target</text>
+
+  <!-- Control Points P0-P3 -->
+  <!-- P0: Start -->
+  <circle cx="80" cy="100" r="4" fill="#ef4444" stroke="white" />
+  <text x="75" y="125" font-family="sans-serif" font-size="11" fill="#64748b">P0 (startX, startY)</text>
+
+  <!-- P1: Jittered Ctrl 1 -->
+  <circle cx="280" cy="100" r="4" fill="#ef4444" stroke="white" />
+  <text x="240" y="90" font-family="ui-monospace" font-size="10" fill="#ef4444">P1 (midX + δ, startY)</text>
+
+  <!-- P2: Jittered Ctrl 2 -->
+  <circle cx="280" cy="160" r="4" fill="#ef4444" stroke="white" />
+  <text x="240" y="185" font-family="ui-monospace" font-size="10" fill="#ef4444">P2 (midX + δ, endY)</text>
+
+  <!-- P3: End -->
+  <circle cx="520" cy="160" r="4" fill="#ef4444" stroke="white" />
+  <text x="515" y="185" font-family="sans-serif" font-size="11" fill="#64748b">P3 (endX, endY)</text>
+
+  <!-- Cubic Bezier -->
+  <path d="M 80 100 C 280 100 280 160 520 160" stroke="#3b82f6" stroke-width="2" fill="none" />
+
+  <!-- Formula -->
+  <text x="350" y="50" font-family="ui-monospace" font-size="12" fill="#ef4444">δ = (node_idx % 5 - 2) * 5</text>
+</svg>
